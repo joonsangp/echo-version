@@ -1,33 +1,53 @@
 version: 2
 jobs:
+  # Golangビルド、テストのジョブ
   build:
-    # CircleCIコンテナのワーキングディレクトリ
+    # (1) CircleCIコンテナのワーキングディレクトリ
     working_directory: /go/src/github.com/gihyodocker/echo-version
-    # ジョブを実行するコンテナのDockerイメージ
+    # (2) ジョブを実行するコンテナのDockerイメージ
     docker:
-      - image: golang:1.9
+      - image: golang:1.9-alpine
     steps:
-      # リポジトリからソースコードをチェックアウト
-      - checkout
-      # docker buildに利用するDockerデーモンの設定。ジョブのコンテナの外に用意される
-      - setup_remote_docker:
-          version: 17.05.0-ce
-          reusable: true
-          docker_layer_caching: true
-      - run: # golangのコンテナ内でdocker buildコマンドを実行するためにDockerクライアントをインストール
-          name: install Docker client
-          command: |
-            set -x
-            VER="17.05.0-ce"
-            curl -L -o /tmp/docker-$VER.tgz https://get.docker.com/builds/Linux/x86_64/docker-$VER.tgz
-            tar -xz -C /tmp -f /tmp/docker-$VER.tgz
-            mv /tmp/docker/* /usr/bin
-      - run: # Golangのテスト
-          name: test 
-          command: go test 
-      - run: # go buildのテスト
+      - checkout # (3) リポジトリからソースコードをチェックアウト
+      - run: # (4) Golangのテスト
+          name: test
+          command: go test
+      - run: # (5) go buildのテスト
           name: build
           command: go build -o bin/echo-version main.go
-      - run: # docker buildのテスト
-          name: docker build test
+      - persist_to_workspace: # (6) workspaceを後続のジョブで利用するために保存
+          root: . 
+          paths:
+            - . 
+
+  docker_build_push:
+    working_directory: /go/src/github.com/gihyodocker/echo-version
+    docker:
+      - image: docker:17.12.0-ce-dind # (7) dockerコマンドを利用できるコンテナ
+    steps:
+      - attach_workspace: # (8) (6)で永続化したworkspaceを配置
+          at: .
+      - run: # (9) docker build
+          name: docker build
           command: docker build -t gihyodocker/echo-version:latest .
+      - run: # (10) ビルドイメージの確認
+          name: show docker images
+          command: docker images
+      - run: # (11) DockerHubにログイン
+          name: docker login
+          command: docker login -u $DOCKER_USER -p $DOCKER_PASS
+      - run: # (12) latestイメージをDockerHubにpush
+          name: release latest
+          command: docker push gihyodocker/echo-version:latest 
+
+workflows:
+  version: 2
+  build_and_release:
+    jobs: # (13) workflowsとして実行するジョブを列挙
+      - build
+      - docker_build_push:
+          requires: # (14) buildジョブの後に実行
+            - build
+          filters: # (15) masterブランチの際だけ実行
+            branches:
+              only: master
