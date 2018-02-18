@@ -44,7 +44,7 @@ jobs:
 
 workflows:
   version: 2
-  build_and_release:
+  build_and_push:
     jobs: # (14) workflowsとして実行するジョブを列挙
       - build
       - docker_build_push:
