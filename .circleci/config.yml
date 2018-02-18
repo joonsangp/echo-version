@@ -1,0 +1,33 @@
+version: 2
+jobs:
+  build:
+    # CircleCIコンテナのワーキングディレクトリ
+    working_directory: /go/src/github.com/gihyodocker/echo-version
+    # ジョブを実行するコンテナのDockerイメージ
+    docker:
+      - image: golang:1.9
+    steps:
+      # リポジトリからソースコードをチェックアウト
+      - checkout
+      # docker buildに利用するDockerデーモンの設定。ジョブのコンテナの外に用意される
+      - setup_remote_docker:
+          version: 17.05.0-ce
+          reusable: true
+          docker_layer_caching: true
+      - run: # golangのコンテナ内でdocker buildコマンドを実行するためにDockerクライアントをインストール
+          name: install Docker client
+          command: |
+            set -x
+            VER="17.05.0-ce"
+            curl -L -o /tmp/docker-$VER.tgz https://get.docker.com/builds/Linux/x86_64/docker-$VER.tgz
+            tar -xz -C /tmp -f /tmp/docker-$VER.tgz
+            mv /tmp/docker/* /usr/bin
+      - run: # Golangのテスト
+          name: test 
+          command: go test 
+      - run: # go buildのテスト
+          name: build
+          command: go build -o bin/echo-version main.go
+      - run: # docker buildのテスト
+          name: docker build test
+          command: docker build -t gihyodocker/echo-version:latest .
