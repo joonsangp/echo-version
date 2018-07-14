@@ -35,10 +35,10 @@ jobs:
       - run: # (11) ビルドイメージの確認
           name: show docker images
           command: docker images
-      - run: # (12) DockerHubにログイン
+      - run: # (12) Docker Hubにログイン
           name: docker login
           command: docker login -u $DOCKER_USER -p $DOCKER_PASS
-      - run: # (13) latestイメージをDockerHubにpush
+      - run: # (13) latestイメージをDocker Hubにpush
           name: release latest
           command: docker push gihyodocker/echo-version:latest 
 
