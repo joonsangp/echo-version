@@ -30,17 +30,17 @@ jobs:
       - setup_remote_docker: # (9) docker buildをするためのdaemonを用意
           version: 18.05.0-ce
       - run: # (10) docker build
-          name: docker build
-          command: docker build -t gihyodocker/echo-version:latest .
+          name: docker image build
+          command: docker image build -t gihyodocker/echo-version:latest .
       - run: # (11) ビルドイメージの確認
-          name: show docker images
-          command: docker images
+          name: show docker image ls
+          command: docker image ls
       - run: # (12) Docker Hubにログイン
           name: docker login
           command: docker login -u $DOCKER_USER -p $DOCKER_PASS
       - run: # (13) latestイメージをDocker Hubにpush
           name: release latest
-          command: docker push gihyodocker/echo-version:latest 
+          command: docker image push gihyodocker/echo-version:latest 
 
 workflows:
   version: 2
